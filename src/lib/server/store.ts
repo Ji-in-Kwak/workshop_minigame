@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import postgres from 'postgres';
 import { GameError, type RoomState } from './engine';
 
 // ── Storage mode ─────────────────────────────────────────────────────────────
@@ -40,16 +41,11 @@ function localWrite(room: RoomState): void {
 
 // ── Postgres store ────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _sql: any = null;
+let _sql: ReturnType<typeof postgres> | null = null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sql(): any {
+function sql(): ReturnType<typeof postgres> {
   if (!_sql) {
-    // Dynamic require keeps postgres out of the bundle for non-db environments.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-    const postgres = require('postgres') as any;
-    _sql = postgres(process.env.DATABASE_URL, { prepare: false, ssl: 'require' });
+    _sql = postgres(process.env.DATABASE_URL!, { prepare: false, ssl: 'require' });
   }
   return _sql;
 }
@@ -63,9 +59,10 @@ export async function insertRoom(room: RoomState): Promise<boolean> {
     localWrite(room);
     return true;
   }
+  const data = JSON.stringify(room);
   const rows = await sql()`
     INSERT INTO rooms (code, data)
-    VALUES (${room.code}, ${JSON.stringify(room) as unknown as object})
+    VALUES (${room.code}, ${data}::jsonb)
     ON CONFLICT (code) DO NOTHING
     RETURNING code
   `;
@@ -95,12 +92,14 @@ export async function updateRoom<T>(code: string, fn: (room: RoomState) => T): P
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return await sql().begin(async (tx: any) => {
+  const out = await (sql().begin as any)(async (tx: any) => {
     const rows = await tx`SELECT data FROM rooms WHERE code = ${code} FOR UPDATE`;
     if (!rows.length) throw new GameError('방을 찾을 수 없습니다.', 404);
     const room = rows[0].data as RoomState;
     const result = fn(room);
-    await tx`UPDATE rooms SET data = ${JSON.stringify(room) as unknown as object} WHERE code = ${code}`;
+    const data = JSON.stringify(room);
+    await tx`UPDATE rooms SET data = ${data}::jsonb WHERE code = ${code}`;
     return result;
   });
+  return out as T;
 }
