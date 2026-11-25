@@ -78,6 +78,7 @@ export type Snapshot = {
   title: string;
   finished: boolean;
   storage: 'local' | 'db';
+  roundCount: number;
   current: RoundInfo;
   participants: ParticipantInfo[];
   me: MeInfo | null;

@@ -99,6 +99,7 @@ export function createRoom(code: string, title: string): { room: RoomState; host
   const practice = all.find(p => p.practice) ?? all[0];
   const five = all.find(p => !p.practice && p.size === 5) ?? all[0];
   const six = all.find(p => !p.practice && p.size === 6) ?? all[0];
+  const seven = all.find(p => !p.practice && p.size === 7) ?? all[0];
 
   const room: RoomState = {
     code,
@@ -109,6 +110,7 @@ export function createRoom(code: string, title: string): { room: RoomState; host
       { index: 0, puzzleId: practice.id, durationSeconds: 180, phase: 'ready', startedAt: null },
       { index: 1, puzzleId: five.id, durationSeconds: 300, phase: 'ready', startedAt: null },
       { index: 2, puzzleId: six.id, durationSeconds: 480, phase: 'ready', startedAt: null },
+      { index: 3, puzzleId: seven.id, durationSeconds: 600, phase: 'ready', startedAt: null },
     ],
     participants: [],
     currentRound: 0,
@@ -370,6 +372,7 @@ export function snapshot(room: RoomState, role: RoleCredential, storage: 'local'
     title: room.title,
     finished: room.finished,
     storage,
+    roundCount: room.rounds.length,
     current: {
       index: room.currentRound,
       phase: round.phase,
