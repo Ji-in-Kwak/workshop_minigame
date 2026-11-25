@@ -104,7 +104,8 @@ export async function updateRoom<T>(code: string, fn: (room: RoomState) => T): P
   const out = await (sql().begin as any)(async (tx: any) => {
     const rows = await tx`SELECT data FROM rooms WHERE code = ${code} FOR UPDATE`;
     if (!rows.length) throw new GameError('방을 찾을 수 없습니다.', 404);
-    const room = rows[0].data as RoomState;
+    const raw = rows[0].data;
+    const room = typeof raw === 'string' ? JSON.parse(raw) as RoomState : raw as RoomState;
     const result = fn(room);
     const data = JSON.stringify(room);
     await tx`UPDATE rooms SET data = ${data}::jsonb WHERE code = ${code}`;
