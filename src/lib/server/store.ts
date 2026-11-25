@@ -45,7 +45,13 @@ let _sql: ReturnType<typeof postgres> | null = null;
 
 function sql(): ReturnType<typeof postgres> {
   if (!_sql) {
-    _sql = postgres(process.env.DATABASE_URL!, { prepare: false, ssl: 'require' });
+    _sql = postgres(process.env.DATABASE_URL!, {
+      prepare: false,
+      ssl: { rejectUnauthorized: false },
+      max: 1,
+      connect_timeout: 10,
+      idle_timeout: 20,
+    });
   }
   return _sql;
 }

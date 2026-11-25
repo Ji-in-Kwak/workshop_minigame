@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
       const code = Array.from({ length: 6 }, () => alphabet[randomInt(alphabet.length)]).join('');
       const result = createRoom(code, input.title || '우리 팀의 연결');
       if (await insertRoom(result.room)) {
+        console.log(`[POST /rooms] created room ${code} hostToken=${result.hostToken.slice(0, 8)}...`);
         return ok({ code, storage: storageKind(), hostToken: result.hostToken, displayToken: result.displayToken });
       }
     }

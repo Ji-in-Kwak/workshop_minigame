@@ -8,7 +8,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest, context: Context) {
   try {
     const code = (await context.params).code.toUpperCase();
-    const role = credentials(request.nextUrl.searchParams.get('mode'), request);
+    const mode = request.nextUrl.searchParams.get('mode');
+    const token = request.headers.get('x-loop-token');
+    console.log(`[GET /rooms/${code}] mode=${mode} token=${token ? token.slice(0, 8) + '...' : 'MISSING'}`);
+    const role = credentials(mode, request);
     return ok(snapshot(await getRoom(code), role, storageKind()));
   } catch (error) { return fail(error); }
 }
