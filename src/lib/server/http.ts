@@ -40,6 +40,7 @@ export function setCredential(response: NextResponse, code: string, type: 'host'
   response.cookies.set(cookieName(code, type), token, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     maxAge: 60 * 60 * 24 * 7,
     path: '/',
   });
