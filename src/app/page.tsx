@@ -15,11 +15,21 @@ function HomeContent() {
   useEffect(() => { const invite = search.get('code'); if (invite) setCode(invite.toUpperCase().replace(/[^A-Z2-9]/g, '').slice(0, 6)); }, [search]);
   async function join(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setError('');
-    try { await api(`/api/rooms/${code}`, { method: 'POST', body: JSON.stringify({ type: 'join', nickname }) }); router.push(`/room/${code}`); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    try {
+      const existing = sessionStorage.getItem(`loop-player-${code}`) ?? undefined;
+      const result = await api<{ playerId: string; token: string }>(`/api/rooms/${code}`, { method: 'POST', body: JSON.stringify({ type: 'join', nickname }), headers: existing ? { 'x-loop-token': existing } : {} });
+      sessionStorage.setItem(`loop-player-${code}`, result.token);
+      router.push(`/room/${code}`);
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
   async function create(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setError('');
-    try { const result = await api<{ code: string; displayToken: string }>('/api/rooms', { method: 'POST', body: JSON.stringify({ title }) }); sessionStorage.setItem(`loop-display-${result.code}`, result.displayToken); router.push(`/host/${result.code}`); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    try {
+      const result = await api<{ code: string; hostToken: string; displayToken: string }>('/api/rooms', { method: 'POST', body: JSON.stringify({ title }) });
+      sessionStorage.setItem(`loop-host-${result.code}`, result.hostToken);
+      sessionStorage.setItem(`loop-display-${result.code}`, result.displayToken);
+      router.push(`/host/${result.code}`);
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
   return <div className="home-shell"><header className="site-header"><Brand /><nav><RulesButton /><button className="button header-host" onClick={() => { setHosting(true); setError(''); }}><Monitor size={16} /> 진행자 모드</button></nav></header>
     <main><section className="home-hero"><div className="hero-copy"><div className="pill"><span className="tiny-loop" /> WORKSHOP / INDIVIDUAL GAME</div><h1>팀 워크샵<br /><span>슬리더링크</span></h1><p className="hero-description">방 코드를 입력하고 개인전에 참여하세요.<br />연습 1회, 본게임 2회로 진행합니다.</p><div className="hero-meta"><span><Users size={16} /> 약 17명이 함께</span><i /><span><ScanLine size={16} /> 설치 없이 바로</span></div>

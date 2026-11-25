@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { NextRequest } from 'next/server';
 import { createRoom, GameError } from '@/lib/server/engine';
 import { insertRoom, storageKind } from '@/lib/server/store';
-import { body, fail, ok, setCredential } from '@/lib/server/http';
+import { body, fail, ok } from '@/lib/server/http';
 export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
@@ -13,10 +13,7 @@ export async function POST(request: NextRequest) {
       const code = Array.from({ length: 6 }, () => alphabet[randomInt(alphabet.length)]).join('');
       const result = createRoom(code, input.title || '우리 팀의 연결');
       if (await insertRoom(result.room)) {
-        const response = ok({ code, storage: storageKind(), displayToken: result.displayToken });
-        setCredential(response, code, 'host', result.hostToken);
-        setCredential(response, code, 'display', result.displayToken);
-        return response;
+        return ok({ code, storage: storageKind(), hostToken: result.hostToken, displayToken: result.displayToken });
       }
     }
     throw new GameError('방 코드를 생성하지 못했습니다. 다시 시도해 주세요.', 503);

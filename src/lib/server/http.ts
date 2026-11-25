@@ -1,13 +1,8 @@
-import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import { GameError } from './engine';
 import type { Mode } from '@/lib/types';
 
 export type RoleCredential = { mode: Mode; token: string };
-
-export function cookieName(code: string, type: 'host' | 'player' | 'display'): string {
-  return `loop-${type}-${code.toLowerCase()}`;
-}
 
 export function ok<T>(data: T): NextResponse {
   return NextResponse.json(data);
@@ -36,27 +31,8 @@ export async function body(request: NextRequest): Promise<Record<string, any>> {
   }
 }
 
-export function setCredential(response: NextResponse, code: string, type: 'host' | 'player' | 'display', token: string): void {
-  response.cookies.set(cookieName(code, type), token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
-  });
-}
-
-export async function credentials(code: string, mode: string | null): Promise<RoleCredential> {
-  const jar = await cookies();
-  const hostToken = jar.get(cookieName(code, 'host'))?.value;
-  const playerToken = jar.get(cookieName(code, 'player'))?.value;
-  const displayToken = jar.get(cookieName(code, 'display'))?.value;
-
-  const resolved = mode as Mode | null ?? (hostToken ? 'host' : playerToken ? 'player' : displayToken ? 'display' : null);
-
-  if (resolved === 'host' && hostToken) return { mode: 'host', token: hostToken };
-  if (resolved === 'display' && displayToken) return { mode: 'display', token: displayToken };
-  if (resolved === 'player' && playerToken) return { mode: 'player', token: playerToken };
-
-  throw new GameError('접근 권한이 없습니다. 다시 입장해 주세요.', 403);
+export function credentials(mode: string | null, request: NextRequest): RoleCredential {
+  const token = request.headers.get('x-loop-token');
+  if (!token || !mode) throw new GameError('접근 권한이 없습니다. 다시 입장해 주세요.', 403);
+  return { mode: mode as Mode, token };
 }
