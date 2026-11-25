@@ -84,7 +84,10 @@ export async function getRoom(code: string): Promise<RoomState> {
   }
   const rows = await sql()`SELECT data FROM rooms WHERE code = ${code}`;
   if (!rows.length) throw new GameError('방을 찾을 수 없습니다.', 404);
-  return rows[0].data as RoomState;
+  const raw = rows[0].data;
+  console.log(`[getRoom ${code}] typeof data=${typeof raw}, hostToken=${(raw as any)?.hostToken?.slice?.(0, 8) ?? 'MISSING'}`);
+  const room = typeof raw === 'string' ? JSON.parse(raw) as RoomState : raw as RoomState;
+  return room;
 }
 
 export async function updateRoom<T>(code: string, fn: (room: RoomState) => T): Promise<T> {
